@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Visualization</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" crossorigin="anonymous">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center">Data Visualization</h2>
+
+        <div class="row mt-4">
+            <!-- Column and format selection form -->
+            <div class="col-md-4">
+                <h4>Select Columns</h4>
+                <form id="column-form" onsubmit="return false;">
+                    <div class="mb-3">
+                        <label for="x_col" class="form-label">X-Axis Column</label>
+                        <select name="x_col" id="x_col" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="y_col" class="form-label">Y-Axis Column</label>
+                        <select name="y_col" id="y_col" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="format_option" class="form-label">Formatting</label>
+                        <select name="format_option" id="format_option" class="form-select">
+                            <option value="None">None</option>
+                            <option value="PKR">PKR</option>
+                            <option value="%">%</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Chart area -->
+            <div class="col-md-8">
+                <div id="chart"></div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} mt-3">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+    </div>
+
+    <script>
+        const parsedRows = JSON.parse('{{ data_json|safe }}');
+        const columns = JSON.parse('{{ columns_json|safe }}');
+
+        const xSelect = document.getElementById('x_col');
+        const ySelect = document.getElementById('y_col');
+        const formatSelect = document.getElementById('format_option');
+
+        // Populate dropdowns with columns
+        columns.forEach(col => {
+            const xOption = document.createElement('option');
+            xOption.value = col;
+            xOption.textContent = col;
+            xSelect.appendChild(xOption);
+
+            const yOption = document.createElement('option');
+            yOption.value = col;
+            yOption.textContent = col;
+            ySelect.appendChild(yOption);
+        });
+
+        // Select defaults
+        if (columns.length > 0) xSelect.value = columns[0];
+        if (columns.length > 1) ySelect.value = columns[1];
+
+        function drawChart() {
+            const x_col = xSelect.value;
+            const y_col = ySelect.value;
+            const chosenFormat = formatSelect.value;
+
+            const x_data = [];
+            const y_data = [];
+            const hover_text = [];
+
+            for (const row of parsedRows) {
+                // numeric and original data
+                const orig = row.original;
+                const num = row.numeric;
+
+                // Use numeric[y_col] for plotting
+                let val = num[y_col];
+
+                if (typeof val === 'number') {
+                    x_data.push(orig[x_col]); // x-axis can be categorical/string
+                    // Apply formatting
+                    let formattedValue;
+                    if (chosenFormat === 'PKR') {
+                        formattedValue = `PKR ${val.toLocaleString()}`;
+                    } else if (chosenFormat === '%') {
+                        formattedValue = `${val}%`;
+                    } else {
+                        formattedValue = val.toLocaleString();
+                    }
+
+                    hover_text.push(`${x_col}: ${orig[x_col]}<br>${y_col}: ${formattedValue}`);
+                    y_data.push(val);
+                }
+            }
+
+            const trace = {
+                x: x_data,
+                y: y_data,
+                type: 'bar',
+                hoverinfo: 'text',
+                hovertext: hover_text
+            };
+
+            let tickPrefix = '';
+            let tickSuffix = '';
+            if (chosenFormat === 'PKR') tickPrefix = 'PKR ';
+            if (chosenFormat === '%') tickSuffix = '%';
+
+            const layout = {
+                title: `Visualization: ${x_col} vs ${y_col}`,
+                xaxis: { title: x_col },
+                yaxis: { 
+                    title: y_col,
+                    tickprefix: tickPrefix,
+                    ticksuffix: tickSuffix
+                }
+            };
+
+            Plotly.newPlot('chart', [trace], layout);
+        }
+
+        // Initial chart
+        drawChart();
+
+        // Redraw on changes
+        xSelect.addEventListener('change', drawChart);
+        ySelect.addEventListener('change', drawChart);
+        formatSelect.addEventListener('change', drawChart);
+    </script>
+</body>
+</html>
+
