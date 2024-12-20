@@ -12,32 +12,45 @@
         <h2 class="text-center">Data Visualization</h2>
 
         <div class="row mt-4">
+            <!-- Column and format selection form -->
             <div class="col-md-4">
+                <h4>Select Columns & Options</h4>
+                <form id="column-form" onsubmit="return false;">
+                    <div class="mb-3">
+                        <label for="x_col" class="form-label">X-Axis Column</label>
+                        <select name="x_col" id="x_col" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="y_col" class="form-label">Y-Axis Column</label>
+                        <select name="y_col" id="y_col" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="format_option" class="form-label">Formatting</label>
+                        <select name="format_option" id="format_option" class="form-select">
+                            <option value="None">None</option>
+                            <option value="PKR">PKR</option>
+                            <option value="%">%</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="keyword_filter" class="form-label">Keyword Filter (on X-axis column)</label>
+                        <input type="text" id="keyword_filter" class="form-control" placeholder="Enter keyword">
+                    </div>
+                </form>
                 <div class="mb-3">
-                    <label for="x_col" class="form-label">X-Axis Column</label>
-                    <select name="x_col" id="x_col" class="form-select"></select>
+                    <button id="add_filter_btn" class="btn btn-outline-primary">Add Filter</button>
                 </div>
-                <div class="mb-3">
-                    <label for="y_col" class="form-label">Y-Axis Column</label>
-                    <select name="y_col" id="y_col" class="form-select"></select>
-                </div>
-                <div class="mb-3">
-                    <label for="format_option" class="form-label">Formatting</label>
-                    <select name="format_option" id="format_option" class="form-select">
-                        <option value="None">None</option>
-                        <option value="PKR">PKR</option>
-                        <option value="%">%</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="keyword_filter" class="form-label">Keyword Filter</label>
-                    <input type="text" id="keyword_filter" class="form-control" placeholder="Enter keyword">
-                </div>
+                <div id="filters_container"></div>
             </div>
 
+            <!-- Chart area -->
             <div class="col-md-8">
                 <div id="chart"></div>
             </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
         </div>
     </div>
 
