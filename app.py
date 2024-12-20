@@ -11,6 +11,7 @@ import plotly.graph_objs as go
 import plotly.io as pio
 import json
 import re
+from datetime import datetime
 
 # Initialize the app
 app = Flask(__name__)
@@ -229,6 +230,20 @@ def visualization():
 
     return render_template('visualization.html', data_json=data_json, columns_json=columns_json)
 
+@app.route('/save_preferences', methods=['POST'])
+def save_preferences():
+    if 'user_id' not in session:
+        return "Unauthorized", 401
+
+    prefs = request.get_json()
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        INSERT INTO user_preferences (user_id, preferences) VALUES (%s, %s)
+        ON DUPLICATE KEY UPDATE preferences=%s
+    """, (session['user_id'], json.dumps(prefs), json.dumps(prefs)))
+    mysql.connection.commit()
+    cur.close()
+    return "OK", 200
 
 @app.route('/logout')
 def logout():

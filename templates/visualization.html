@@ -32,6 +32,10 @@
                             <option value="%">%</option>
                         </select>
                     </div>
+		    <div class="mb-3">
+    			<label for="keyword_filter" class="form-label">Keyword Filter</label>
+   			<input type="text" id="keyword_filter" class="form-control" placeholder="Enter keyword">
+		    </div>
                 </form>
             </div>
 
@@ -55,98 +59,121 @@
     </div>
 
     <script>
-        const parsedRows = JSON.parse('{{ data_json|safe }}');
-        const columns = JSON.parse('{{ columns_json|safe }}');
+    const parsedRows = JSON.parse('{{ data_json|safe }}');
+    const columns = JSON.parse('{{ columns_json|safe }}');
 
-        const xSelect = document.getElementById('x_col');
-        const ySelect = document.getElementById('y_col');
-        const formatSelect = document.getElementById('format_option');
+    const xSelect = document.getElementById('x_col');
+    const ySelect = document.getElementById('y_col');
+    const formatSelect = document.getElementById('format_option');
 
-        // Populate dropdowns with columns
-        columns.forEach(col => {
-            const xOption = document.createElement('option');
-            xOption.value = col;
-            xOption.textContent = col;
-            xSelect.appendChild(xOption);
+    // Reference to the keyword filter input
+    const keywordInput = document.getElementById('keyword_filter');
 
-            const yOption = document.createElement('option');
-            yOption.value = col;
-            yOption.textContent = col;
-            ySelect.appendChild(yOption);
-        });
+    // Populate dropdowns with columns
+    columns.forEach(col => {
+        const xOption = document.createElement('option');
+        xOption.value = col;
+        xOption.textContent = col;
+        xSelect.appendChild(xOption);
 
-        // Select defaults
-        if (columns.length > 0) xSelect.value = columns[0];
-        if (columns.length > 1) ySelect.value = columns[1];
+        const yOption = document.createElement('option');
+        yOption.value = col;
+        yOption.textContent = col;
+        ySelect.appendChild(yOption);
+    });
 
-        function drawChart() {
-            const x_col = xSelect.value;
-            const y_col = ySelect.value;
-            const chosenFormat = formatSelect.value;
+    // Select defaults
+    if (columns.length > 0) xSelect.value = columns[0];
+    if (columns.length > 1) ySelect.value = columns[1];
 
-            const x_data = [];
-            const y_data = [];
-            const hover_text = [];
+    // Function to filter rows based on keyword
+    function getFilteredRows() {
+        const keyword = keywordInput.value.toLowerCase();
+        const x_col = xSelect.value;
 
-            for (const row of parsedRows) {
-                // numeric and original data
-                const orig = row.original;
-                const num = row.numeric;
-
-                // Use numeric[y_col] for plotting
-                let val = num[y_col];
-
-                if (typeof val === 'number') {
-                    x_data.push(orig[x_col]); // x-axis can be categorical/string
-                    // Apply formatting
-                    let formattedValue;
-                    if (chosenFormat === 'PKR') {
-                        formattedValue = `PKR ${val.toLocaleString()}`;
-                    } else if (chosenFormat === '%') {
-                        formattedValue = `${val}%`;
-                    } else {
-                        formattedValue = val.toLocaleString();
-                    }
-
-                    hover_text.push(`${x_col}: ${orig[x_col]}<br>${y_col}: ${formattedValue}`);
-                    y_data.push(val);
-                }
-            }
-
-            const trace = {
-                x: x_data,
-                y: y_data,
-                type: 'bar',
-                hoverinfo: 'text',
-                hovertext: hover_text
-            };
-
-            let tickPrefix = '';
-            let tickSuffix = '';
-            if (chosenFormat === 'PKR') tickPrefix = 'PKR ';
-            if (chosenFormat === '%') tickSuffix = '%';
-
-            const layout = {
-                title: `Visualization: ${x_col} vs ${y_col}`,
-                xaxis: { title: x_col },
-                yaxis: { 
-                    title: y_col,
-                    tickprefix: tickPrefix,
-                    ticksuffix: tickSuffix
-                }
-            };
-
-            Plotly.newPlot('chart', [trace], layout);
+        if (!keyword) {
+            // If no keyword is entered, return all rows
+            return parsedRows;
         }
 
-        // Initial chart
-        drawChart();
+        // Filter rows where the chosen x_col's original value includes the keyword
+        return parsedRows.filter(row => {
+            const val = (row.original[x_col] || '').toString().toLowerCase();
+            return val.includes(keyword);
+        });
+    }
 
-        // Redraw on changes
-        xSelect.addEventListener('change', drawChart);
-        ySelect.addEventListener('change', drawChart);
-        formatSelect.addEventListener('change', drawChart);
-    </script>
+    function drawChart() {
+        // Use the filtered rows instead of all parsedRows
+        const filteredRows = getFilteredRows();
+
+        const x_col = xSelect.value;
+        const y_col = ySelect.value;
+        const chosenFormat = formatSelect.value;
+
+        const x_data = [];
+        const y_data = [];
+        const hover_text = [];
+
+        for (const row of filteredRows) {
+            const orig = row.original;
+            const num = row.numeric;
+
+            let val = num[y_col];
+            if (typeof val === 'number') {
+                x_data.push(orig[x_col]);
+                let formattedValue;
+                if (chosenFormat === 'PKR') {
+                    formattedValue = `PKR ${val.toLocaleString()}`;
+                } else if (chosenFormat === '%') {
+                    formattedValue = `${val}%`;
+                } else {
+                    formattedValue = val.toLocaleString();
+                }
+
+                hover_text.push(`${x_col}: ${orig[x_col]}<br>${y_col}: ${formattedValue}`);
+                y_data.push(val);
+            }
+        }
+
+        const trace = {
+            x: x_data,
+            y: y_data,
+            type: 'bar',
+            hoverinfo: 'text',
+            hovertext: hover_text
+        };
+
+        let tickPrefix = '';
+        let tickSuffix = '';
+        if (chosenFormat === 'PKR') tickPrefix = 'PKR ';
+        if (chosenFormat === '%') tickSuffix = '%';
+
+        const layout = {
+            title: `Visualization: ${x_col} vs ${y_col}`,
+            xaxis: { title: x_col },
+            yaxis: {
+                title: y_col,
+                tickprefix: tickPrefix,
+                ticksuffix: tickSuffix
+            }
+        };
+
+        Plotly.newPlot('chart', [trace], layout);
+    }
+
+    // Initial chart
+    drawChart();
+
+    // Redraw on changes of columns/format
+    xSelect.addEventListener('change', drawChart);
+    ySelect.addEventListener('change', drawChart);
+    formatSelect.addEventListener('change', drawChart);
+
+    // Redraw on keyword input changes
+    keywordInput.addEventListener('input', drawChart);
+</script>
+
 </body>
 </html>
 
