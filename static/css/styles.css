@@ -74,3 +74,25 @@ h2, h4 {
   background-color: #cf6b1c;
 }
 
+/* Ensure chart containers can expand fully, handle .card styling */
+.card {
+  background-color: var(--bg-color);
+  border: 1px solid #ccc;
+}
+
+#chart1, #chart2, #chart3, #chart4 {
+  width: 100%;
+  min-height: 400px;
+}
+
+/* You can adapt these for a more fluid/wider page */
+.container-fluid {
+  max-width: 100%;
+}
+
+/* .badge for the pills approach */
+.badge {
+  padding: 0.4em 0.7em;
+  font-size: 0.85rem;
+}
+

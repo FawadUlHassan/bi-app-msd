@@ -1,90 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Visualization</title>
-    
-    <!-- Bootstrap -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" crossorigin="anonymous">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Visualization</title>
 
-    <!-- Include Your Custom CSS with Brand Colors & Dark/Light Mode -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" crossorigin="anonymous">
 
-    <!-- Plotly -->
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <!-- Your custom CSS (brand colors, dark/light, etc.) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+  <!-- Plotly -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <div class="container mt-5">
-        <h2 class="text-center mb-4">Data Visualization</h2>
+  <div class="container-fluid mt-4">
+    <h2 class="text-center mb-4">Data Visualization</h2>
 
-        <div class="row mt-4">
-            <div class="col-md-4">
-                <h4>Select Columns &amp; Options</h4>
-                <form id="column-form" onsubmit="return false;">
-                    <div class="mb-3">
-                        <label for="x_col" class="form-label">X-Axis Column</label>
-                        <select name="x_col" id="x_col" class="form-select"></select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="y_col" class="form-label">Y-Axis Column</label>
-                        <select name="y_col" id="y_col" class="form-select"></select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="keyword_filter" class="form-label">Keyword Filter (on X-axis column)</label>
-                        <input type="text" id="keyword_filter" class="form-control" placeholder="Enter keyword">
-                    </div>
-                </form>
-                <div class="mb-3">
-                    <!-- Using brand-orange button for "Add Filter" -->
-                    <button id="add_filter_btn" class="btn btn-orange">Add Filter</button>
-                </div>
-                <div id="filters_container"></div>
-            </div>
-
-            <div class="col-md-8">
-                <div id="chart"></div>
-            </div>
-        </div>
-
-        <div class="text-center mt-4">
-            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
-        </div>
+    <!-- Data Preview: wide reveal with downward chevron on the right side -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h4 class="mb-0">Data Preview</h4>
+      <button class="btn btn-sm btn-primary" id="dataPreviewToggle" style="display:flex;align-items:center;">
+        <span>▼</span>
+      </button>
+    </div>
+    <div id="dataPreviewSection" class="mb-3" style="display:none;">
+      <div id="dataPreviewContent" class="table-responsive" style="max-height:400px; overflow:auto;"></div>
     </div>
 
-    <!-- Dark/Light Mode Toggle Button -->
-    <button id="darkLightToggle">🌓</button>
+    <!-- Filters + X/Y parameter selection -->
+    <div class="row">
+      <div class="col-lg-3 mb-3">
+        <h5>Filters & Parameters</h5>
+        
+        <!-- A single filter area for all charts -->
+        <div class="mb-3">
+          <label for="keyword_filter" class="form-label">Keyword Filter (applies to X-axis data)</label>
+          <input type="text" id="keyword_filter" class="form-control" placeholder="Enter keyword...">
+        </div>
+        <button id="add_filter_btn" class="btn btn-orange mb-3">Add Filter</button>
+        <div id="filters_container"></div>
+      </div>
 
-    <!-- Inline script for global variables -->
-    <script>
-        window.parsedRowsData = {{ data_json|safe }};
-        window.columnsData = {{ columns_json|safe }};
-    </script>
-    <!-- Link to visualization.js -->
-    <script src="{{ url_for('static', filename='js/visualization.js') }}"></script>
+      <div class="col-lg-9">
+        <div class="row">
+          <!-- Chart placeholders in a 2x2 grid -->
+          <div class="col-md-6 mb-4">
+            <div class="card p-2">
+              <!-- Chart 1 controls -->
+              <h6>Chart 1 Controls</h6>
+              <div class="mb-2">
+                <label for="chart1_type" class="form-label">Chart Type</label>
+                <select name="chart1_type" id="chart1_type" class="form-select">
+                  <option value="bar">Bar</option>
+                  <option value="line">Line</option>
+                  <option value="scatter">Scatter</option>
+                  <option value="pie">Pie</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">X-Axis Fields</label>
+                <div id="chart1_x_fields" class="d-flex flex-wrap gap-2"></div>
+                <select id="chart1_x_selector" class="form-select form-select-sm mt-1">
+                  <option value="">Select an X field...</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Y-Axis Fields</label>
+                <div id="chart1_y_fields" class="d-flex flex-wrap gap-2"></div>
+                <select id="chart1_y_selector" class="form-select form-select-sm mt-1">
+                  <option value="">Select a Y field...</option>
+                </select>
+              </div>
+              <div id="chart1" style="height:400px;"></div>
+            </div>
+          </div>
 
-    <!-- Mode Toggle Logic -->
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        const toggleBtn = document.getElementById('darkLightToggle');
-        const savedMode = localStorage.getItem('themeMode');
+          <div class="col-md-6 mb-4">
+            <div class="card p-2">
+              <!-- Chart 2 controls -->
+              <h6>Chart 2 Controls</h6>
+              <div class="mb-2">
+                <label for="chart2_type" class="form-label">Chart Type</label>
+                <select name="chart2_type" id="chart2_type" class="form-select">
+                  <option value="bar">Bar</option>
+                  <option value="line">Line</option>
+                  <option value="scatter">Scatter</option>
+                  <option value="pie">Pie</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">X-Axis Fields</label>
+                <div id="chart2_x_fields" class="d-flex flex-wrap gap-2"></div>
+                <select id="chart2_x_selector" class="form-select form-select-sm mt-1">
+                  <option value="">Select an X field...</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Y-Axis Fields</label>
+                <div id="chart2_y_fields" class="d-flex flex-wrap gap-2"></div>
+                <select id="chart2_y_selector" class="form-select form-select-sm mt-1">
+                  <option value="">Select a Y field...</option>
+                </select>
+              </div>
+              <div id="chart2" style="height:400px;"></div>
+            </div>
+          </div>
 
-        // If user had dark mode previously, apply it now
-        if (savedMode === 'dark') {
-          document.body.classList.add('dark-mode');
-        }
+          <div class="col-md-6 mb-4">
+            <div class="card p-2">
+              <!-- Chart 3 controls -->
+              <h6>Chart 3 Controls</h6>
+              <div class="mb-2">
+                <label for="chart3_type" class="form-label">Chart Type</label>
+                <select name="chart3_type" id="chart3_type" class="form-select">
+                  <option value="bar">Bar</option>
+                  <option value="line">Line</option>
+                  <option value="scatter">Scatter</option>
+                  <option value="pie">Pie</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">X-Axis Fields</label>
+                <div id="chart3_x_fields" class="d-flex flex-wrap gap-2"></div>
+                <select id="chart3_x_selector" class="form-select form-select-sm mt-1">
+                  <option value="">Select an X field...</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Y-Axis Fields</label>
+                <div id="chart3_y_fields" class="d-flex flex-wrap gap-2"></div>
+                <select id="chart3_y_selector" class="form-select form-select-sm mt-1">
+                  <option value="">Select a Y field...</option>
+                </select>
+              </div>
+              <div id="chart3" style="height:400px;"></div>
+            </div>
+          </div>
 
-        // Toggle dark mode on button click
-        toggleBtn.addEventListener('click', () => {
-          document.body.classList.toggle('dark-mode');
-          if (document.body.classList.contains('dark-mode')) {
-            localStorage.setItem('themeMode', 'dark');
-          } else {
-            localStorage.setItem('themeMode', 'light');
-          }
-        });
+          <div class="col-md-6 mb-4">
+            <div class="card p-2">
+              <!-- Chart 4 controls -->
+              <h6>Chart 4 Controls</h6>
+              <div class="mb-2">
+                <label for="chart4_type" class="form-label">Chart Type</label>
+                <select name="chart4_type" id="chart4_type" class="form-select">
+                  <option value="bar">Bar</option>
+                  <option value="line">Line</option>
+                  <option value="scatter">Scatter</option>
+                  <option value="pie">Pie</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">X-Axis Fields</label>
+                <div id="chart4_x_fields" class="d-flex flex-wrap gap-2"></div>
+                <select id="chart4_x_selector" class="form-select form-select-sm mt-1">
+                  <option value="">Select an X field...</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Y-Axis Fields</label>
+                <div id="chart4_y_fields" class="d-flex flex-wrap gap-2"></div>
+                <select id="chart4_y_selector" class="form-select form-select-sm mt-1">
+                  <option value="">Select a Y field...</option>
+                </select>
+              </div>
+              <div id="chart4" style="height:400px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+    </div>
+  </div>
+
+  <!-- Dark/Light toggle button -->
+  <button id="darkLightToggle">🌓</button>
+
+  <!-- Inline script for global data -->
+  <script>
+    window.parsedRowsData = {{ data_json|safe }};
+    window.columnsData = {{ columns_json|safe }};
+  </script>
+
+  <!-- Link to the main visualization.js -->
+  <script src="{{ url_for('static', filename='js/visualization.js') }}"></script>
+
+  <!-- Script for toggling dark/light mode if not included in styles.js -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggleBtn = document.getElementById('darkLightToggle');
+      const savedMode = localStorage.getItem('themeMode');
+
+      if (savedMode === 'dark') {
+        document.body.classList.add('dark-mode');
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        localStorage.setItem('themeMode',
+          document.body.classList.contains('dark-mode') ? 'dark' : 'light'
+        );
       });
-    </script>
+
+      // Data preview toggle
+      const dataPreviewToggle = document.getElementById('dataPreviewToggle');
+      const dataPreviewSection = document.getElementById('dataPreviewSection');
+      let expanded = false;
+      dataPreviewToggle.addEventListener('click', () => {
+        expanded = !expanded;
+        dataPreviewSection.style.display = expanded ? 'block' : 'none';
+        // Toggle chevron
+        dataPreviewToggle.innerHTML = expanded ? '▲' : '▼';
+      });
+    });
+  </script>
 </body>
 </html>
 
