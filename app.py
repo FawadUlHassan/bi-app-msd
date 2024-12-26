@@ -11,11 +11,9 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# Initialize the app
 app = Flask(__name__)
 app.config.from_object('config.Config')
 
-# Initialize MySQL
 mysql = MySQL(app)
 
 UPLOAD_FOLDER = 'uploads'
@@ -28,28 +26,50 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def convert_to_numeric(value):
-    val_str = str(value).strip()
-    # Remove leading alphabets (e.g. currency) and spaces
-    val_str = re.sub(r'^[A-Za-z\s]+', '', val_str)
-    # Remove commas
-    val_str = val_str.replace(',', '')
+def detect_type(value):
+    """Dynamically detect type: currency, percentage, numeric, date, or text."""
+    if value is None:
+        return "text", None
 
-    percentage = False
-    if val_str.endswith('%'):
-        percentage = True
-        val_str = val_str[:-1].strip()
+    val = str(value).strip()
+    if not val:
+        return "text", None
 
+    # Check for percentage
+    if val.endswith('%'):
+        try:
+            return "percentage", float(val.rstrip('%').strip())
+        except ValueError:
+            return "text", val
+
+    # Check for currency (approx. logic)
+    currency_pattern = r'^[A-Za-z\.\s]*[\d,]+(\.\d+)?$'
+    if re.match(currency_pattern, val):
+        try:
+            numeric = float(re.sub(r'[^\d\.]', '', val))
+            return "currency", numeric
+        except ValueError:
+            return "text", val
+
+    # Check numeric
     try:
-        num = float(val_str)
-        # If you wanted to interpret percentages as fraction, you could do:
-        # if percentage:
-        #     num /= 100.0
-        return num
+        return "numeric", float(val)
     except ValueError:
-        return None
+        pass
 
-# Registration Form
+    # Check date
+    date_formats = ['%d-%b-%y', '%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y']
+    for fmt in date_formats:
+        try:
+            dt = datetime.strptime(val, fmt)
+            return "date", dt.strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+
+    # Default to text
+    return "text", val
+
+
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=50)])
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -57,7 +77,6 @@ class RegistrationForm(FlaskForm):
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Register')
 
-# Login Form
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
@@ -70,16 +89,17 @@ def register():
         username = form.username.data.strip()
         email = form.email.data.strip()
         password = generate_password_hash(form.password.data)
-        
-        # Check if username or email already exists
+
         cur = mysql.connection.cursor()
         cur.execute("SELECT id FROM users WHERE username = %s OR email = %s", (username, email))
         existing_user = cur.fetchone()
         if existing_user:
             flash('Username or email already exists!', 'danger')
         else:
-            cur.execute("INSERT INTO users (username, email, password) VALUES (%s, %s, %s)", (username, email, password))
+            cur.execute("INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
+                        (username, email, password))
             mysql.connection.commit()
+            cur.close()
             flash('Registration successful! You can now log in.', 'success')
             return redirect(url_for('login'))
         cur.close()
@@ -92,7 +112,6 @@ def login():
     if form.validate_on_submit():
         username = form.username.data.strip()
         password_input = form.password.data
-        
         cur = mysql.connection.cursor()
         cur.execute("SELECT id, password FROM users WHERE username = %s", (username,))
         user = cur.fetchone()
@@ -144,10 +163,9 @@ def upload():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
 
-            with open(filepath, newline='') as csvfile:
+            with open(filepath, newline='', encoding='utf-8') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
                 rows = list(reader)
-                
                 if not rows:
                     flash('Uploaded CSV is empty', 'info')
                     return redirect(url_for('upload'))
@@ -158,21 +176,48 @@ def upload():
                 cur = mysql.connection.cursor()
                 cur.execute("TRUNCATE TABLE uploaded_data_json")
 
-                for row in data_rows:
-                    if len(row) == len(headers):
-                        row_dict = dict(zip(headers, row))
-                        numeric_data = {}
+                # We'll gather stats for numeric columns for a simple data science summary
+                numericTrackers = {h: [] for h in headers}
+
+                for rowVals in data_rows:
+                    if len(rowVals) == len(headers):
+                        row_dict = dict(zip(headers, rowVals))
+                        processed_data = {}
+                        types_data = {}
+
                         for k, v in row_dict.items():
-                            numeric_val = convert_to_numeric(v)
-                            numeric_data[k] = numeric_val
+                            dtype, val = detect_type(v)
+                            processed_data[k] = val
+                            types_data[k] = dtype
+                            # If numeric, store in numericTrackers
+                            if dtype in ['numeric','currency','percentage']:
+                                numericTrackers[k].append(val)
 
                         final_dict = {
                             "original": row_dict,
-                            "numeric": numeric_data
+                            "processed": processed_data,
+                            "types": types_data
                         }
 
-                        json_data = json.dumps(final_dict)
+                        json_data = json.dumps(final_dict, ensure_ascii=False)
                         cur.execute("INSERT INTO uploaded_data_json (row_data) VALUES (%s)", (json_data,))
+
+                # Quick data science summary for numeric columns
+                ds_summary = {}
+                for k, arr in numericTrackers.items():
+                    valid = [x for x in arr if x is not None]
+                    if valid:
+                        ds_summary[k] = {
+                            "count": len(valid),
+                            "min": min(valid),
+                            "max": max(valid),
+                            "mean": sum(valid)/len(valid),
+                            "distinct": len(set(valid))
+                        }
+
+                # We store ds_summary as a single row with row_data='__SUMMARY__'
+                summary_json = json.dumps({"ds_summary": ds_summary}, ensure_ascii=False)
+                cur.execute("INSERT INTO uploaded_data_json (row_data) VALUES (%s)", (summary_json,))
 
                 mysql.connection.commit()
                 cur.close()
@@ -201,10 +246,14 @@ def visualization():
         return redirect(url_for('upload'))
 
     parsed_rows = []
+    ds_summary = {}
     for r in rows:
         try:
-            parsed = json.loads(r[0])  # => { original: {}, numeric: {} }
-            parsed_rows.append(parsed)
+            parsed = json.loads(r[0])  # => { original, processed, types } or { ds_summary }
+            if "ds_summary" in parsed:
+                ds_summary = parsed["ds_summary"]
+            else:
+                parsed_rows.append(parsed)
         except Exception as e:
             print("Error parsing JSON:", e)
 
@@ -212,12 +261,15 @@ def visualization():
         flash('No valid data to visualize.', 'info')
         return redirect(url_for('upload'))
 
-    # Use the 'original' keys from the first row for columns
     all_keys = list(parsed_rows[0]["original"].keys())
-    data_json = json.dumps(parsed_rows)
-    columns_json = json.dumps(all_keys)
+    data_json = json.dumps(parsed_rows, ensure_ascii=False)
+    columns_json = json.dumps(all_keys, ensure_ascii=False)
+    ds_summary_json = json.dumps(ds_summary, ensure_ascii=False)
 
-    return render_template('visualization.html', data_json=data_json, columns_json=columns_json)
+    return render_template('visualization.html', 
+                           data_json=data_json, 
+                           columns_json=columns_json,
+                           ds_summary_json=ds_summary_json)
 
 @app.route('/logout')
 def logout():

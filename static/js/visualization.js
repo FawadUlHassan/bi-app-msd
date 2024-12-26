@@ -1,369 +1,342 @@
-console.log("Initialization of advanced visualization...");
+console.log("Metabase-like Visualization with DS logic...");
 
 const parsedRows = window.parsedRowsData || [];
 const columns = window.columnsData || [];
+const dsSummaryData = window.dsSummaryData || {}; 
+// e.g. { columnName: {count, min, max, mean, distinct }, ... }
 
-//////////////////////
-// Data Preview
-//////////////////////
+// 1. Show DS summary in sidebar
+function showDSSummary() {
+  const dsSummaryEl = document.getElementById('dsSummary');
+  if (!dsSummaryEl) return;
+  if (!Object.keys(dsSummaryData).length) {
+    dsSummaryEl.innerHTML = "<p class='text-muted'>No numeric column stats available.</p>";
+    return;
+  }
+  let html = '<ul class="list-group">';
+  for (let col in dsSummaryData) {
+    const st = dsSummaryData[col];
+    html += `<li class="list-group-item">
+               <strong>${col}</strong><br>
+               Count: ${st.count}<br>
+               Min: ${st.min}<br>
+               Max: ${st.max}<br>
+               Mean: ${st.mean.toFixed(2)}<br>
+               Distinct: ${st.distinct}
+             </li>`;
+  }
+  html += '</ul>';
+  dsSummaryEl.innerHTML = html;
+}
+showDSSummary();
+
+// 2. Data Preview 
 function createDataPreview() {
-  const container = document.getElementById('dataPreviewContent');
-  if (!container) return;
-
+  const dataPreviewContent = document.getElementById('dataPreviewContent');
+  if (!dataPreviewContent) return;
   const maxRows = 10;
-  let html = '<table class="table table-sm table-bordered">';
-  // Table head
-  html += '<thead><tr>';
+  let html = '<table class="table table-bordered table-sm"><thead><tr>';
   columns.forEach(col => {
     html += `<th>${col}</th>`;
   });
   html += '</tr></thead><tbody>';
-
-  // Table body (up to 10 rows)
   for (let i = 0; i < Math.min(parsedRows.length, maxRows); i++) {
-    const rowData = parsedRows[i].original;
+    const row = parsedRows[i].original;
     html += '<tr>';
     columns.forEach(col => {
-      html += `<td>${rowData[col] || ''}</td>`;
+      html += `<td>${row[col] || ''}</td>`;
     });
     html += '</tr>';
   }
   html += '</tbody></table>';
-
-  container.innerHTML = html;
+  dataPreviewContent.innerHTML = html;
 }
 createDataPreview();
 
-//////////////////////
-// Filter Management
-//////////////////////
-const keywordInput = document.getElementById('keyword_filter');
-const addFilterBtn = document.getElementById('add_filter_btn');
-const filtersContainer = document.getElementById('filters_container');
-
-// Distinct values for each column
-const distinctValues = {};
-columns.forEach(col => {
-  const set = new Set();
-  parsedRows.forEach(row => {
-    if (row.original[col] != null) {
-      set.add(row.original[col].toString());
-    }
-  });
-  distinctValues[col] = Array.from(set);
-});
-
-// Add filter row
-function addFilterRow() {
-  const rowDiv = document.createElement('div');
-  rowDiv.className = 'd-flex mb-2 align-items-start flex-wrap';
-
-  const colSelect = document.createElement('select');
-  colSelect.className = 'form-select me-2 mb-2';
-  colSelect.innerHTML = '<option value="">Select Column</option>';
-  columns.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c;
-    opt.textContent = c;
-    colSelect.appendChild(opt);
-  });
-
-  const valSelect = document.createElement('select');
-  valSelect.className = 'form-select me-2 mb-2';
-  valSelect.style.display = 'none';
-
-  const removeBtn = document.createElement('button');
-  removeBtn.type = 'button';
-  removeBtn.className = 'btn btn-sm btn-danger mb-2';
-  removeBtn.textContent = 'X';
-
-  rowDiv.appendChild(colSelect);
-  rowDiv.appendChild(valSelect);
-  rowDiv.appendChild(removeBtn);
-  filtersContainer.appendChild(rowDiv);
-
-  colSelect.addEventListener('change', () => {
-    const selectedCol = colSelect.value;
-    if (selectedCol) {
-      valSelect.innerHTML = '';
-      const vals = distinctValues[selectedCol] || [];
-      valSelect.appendChild(new Option("Select Value", ""));
-      vals.forEach(v => {
-        const opt = document.createElement('option');
-        opt.value = v;
-        opt.textContent = v;
-        valSelect.appendChild(opt);
-      });
-      valSelect.style.display = 'block';
-    } else {
-      valSelect.style.display = 'none';
-    }
-    drawAllCharts();
-  });
-
-  valSelect.addEventListener('change', () => {
-    drawAllCharts();
-  });
-
-  removeBtn.addEventListener('click', () => {
-    rowDiv.remove();
-    drawAllCharts();
-  });
-}
-addFilterBtn.addEventListener('click', addFilterRow);
-
-function getCurrentFilters() {
-  const filterRows = filtersContainer.querySelectorAll('div.d-flex');
-  const filters = [];
-  filterRows.forEach(row => {
-    const selects = row.querySelectorAll('select');
-    if (selects.length === 2) {
-      const colSelect = selects[0];
-      const valSelect = selects[1];
-      if (colSelect.value && valSelect.value) {
-        filters.push({ column: colSelect.value, value: valSelect.value });
-      }
-    }
-  });
-  return filters;
-}
-
-//////////////////////
-// Chart Management
-//////////////////////
-
-// We have 4 charts. For each chart, we have a chartType, X selection, Y selection
+// 3. Chart configs
 const chartConfigs = [
-  { 
-    typeSelectId: 'chart1_type',
-    xSelectorId: 'chart1_x_selector',
+  {
+    chartNum: 1,
+    titleId: 'chart1_title',
+    editIconId: 'chart1_edit',
+    titleEditId: 'chart1_title_edit',
+    titleInputId: 'chart1_title_input',
+    titleConfirmId: 'chart1_title_confirm',
+    titleCancelId: 'chart1_title_cancel',
+    typeId: 'chart1_type',
     xFieldsId: 'chart1_x_fields',
-    ySelectorId: 'chart1_y_selector',
+    xSelectorId: 'chart1_x_selector',
+    xKeywordId: 'chart1_xkeyword',
     yFieldsId: 'chart1_y_fields',
+    ySelectorId: 'chart1_y_selector',
+    yKeywordId: 'chart1_ykeyword',
     chartDivId: 'chart1',
     xCols: [],
-    yCols: []
+    yCols: [],
+    chartName: 'Chart 1'
   },
-  { 
-    typeSelectId: 'chart2_type',
-    xSelectorId: 'chart2_x_selector',
+  {
+    chartNum: 2,
+    titleId: 'chart2_title',
+    editIconId: 'chart2_edit',
+    titleEditId: 'chart2_title_edit',
+    titleInputId: 'chart2_title_input',
+    titleConfirmId: 'chart2_title_confirm',
+    titleCancelId: 'chart2_title_cancel',
+    typeId: 'chart2_type',
     xFieldsId: 'chart2_x_fields',
-    ySelectorId: 'chart2_y_selector',
+    xSelectorId: 'chart2_x_selector',
+    xKeywordId: 'chart2_xkeyword',
     yFieldsId: 'chart2_y_fields',
+    ySelectorId: 'chart2_y_selector',
+    yKeywordId: 'chart2_ykeyword',
     chartDivId: 'chart2',
     xCols: [],
-    yCols: []
+    yCols: [],
+    chartName: 'Chart 2'
   },
   {
-    typeSelectId: 'chart3_type',
-    xSelectorId: 'chart3_x_selector',
+    chartNum: 3,
+    titleId: 'chart3_title',
+    editIconId: 'chart3_edit',
+    titleEditId: 'chart3_title_edit',
+    titleInputId: 'chart3_title_input',
+    titleConfirmId: 'chart3_title_confirm',
+    titleCancelId: 'chart3_title_cancel',
+    typeId: 'chart3_type',
     xFieldsId: 'chart3_x_fields',
-    ySelectorId: 'chart3_y_selector',
+    xSelectorId: 'chart3_x_selector',
+    xKeywordId: 'chart3_xkeyword',
     yFieldsId: 'chart3_y_fields',
+    ySelectorId: 'chart3_y_selector',
+    yKeywordId: 'chart3_ykeyword',
     chartDivId: 'chart3',
     xCols: [],
-    yCols: []
+    yCols: [],
+    chartName: 'Chart 3'
   },
   {
-    typeSelectId: 'chart4_type',
-    xSelectorId: 'chart4_x_selector',
+    chartNum: 4,
+    titleId: 'chart4_title',
+    editIconId: 'chart4_edit',
+    titleEditId: 'chart4_title_edit',
+    titleInputId: 'chart4_title_input',
+    titleConfirmId: 'chart4_title_confirm',
+    titleCancelId: 'chart4_title_cancel',
+    typeId: 'chart4_type',
     xFieldsId: 'chart4_x_fields',
-    ySelectorId: 'chart4_y_selector',
+    xSelectorId: 'chart4_x_selector',
+    xKeywordId: 'chart4_xkeyword',
     yFieldsId: 'chart4_y_fields',
+    ySelectorId: 'chart4_y_selector',
+    yKeywordId: 'chart4_ykeyword',
     chartDivId: 'chart4',
     xCols: [],
-    yCols: []
+    yCols: [],
+    chartName: 'Chart 4'
   },
 ];
 
-// Attach events for each chart config
+// Helper to create "pill"
+function createPill(value, arrayRef, containerEl) {
+  const pill = document.createElement('span');
+  pill.className = 'badge bg-primary me-2 mb-2 d-flex align-items-center';
+  pill.style.cursor = 'pointer';
+  pill.textContent = value + ' ';
+
+  const removeIcon = document.createElement('span');
+  removeIcon.textContent = '✕';
+  removeIcon.style.marginLeft = '5px';
+  removeIcon.addEventListener('click', () => {
+    const idx = arrayRef.indexOf(value);
+    if (idx >= 0) arrayRef.splice(idx, 1);
+    containerEl.removeChild(pill);
+    drawAllCharts();
+  });
+  pill.appendChild(removeIcon);
+
+  return pill;
+}
+
+// Setup each chart
 chartConfigs.forEach(cfg => {
-  // Fill the X and Y dropdown with columns
-  const xSelector = document.getElementById(cfg.xSelectorId);
-  const ySelector = document.getElementById(cfg.ySelectorId);
+  const titleEl = document.getElementById(cfg.titleId);
+  const editIcon = document.getElementById(cfg.editIconId);
+  const titleEditDiv = document.getElementById(cfg.titleEditId);
+  const titleInput = document.getElementById(cfg.titleInputId);
+  const confirmBtn = document.getElementById(cfg.titleConfirmId);
+  const cancelBtn = document.getElementById(cfg.titleCancelId);
 
-  columns.forEach(col => {
-    const optX = document.createElement('option');
-    optX.value = col;
-    optX.textContent = col;
-    xSelector.appendChild(optX);
-
-    const optY = document.createElement('option');
-    optY.value = col;
-    optY.textContent = col;
-    ySelector.appendChild(optY);
+  editIcon.addEventListener('click', () => {
+    titleEditDiv.style.display = 'flex';
+    titleInput.value = cfg.chartName;
+  });
+  confirmBtn.addEventListener('click', () => {
+    cfg.chartName = titleInput.value || cfg.chartName;
+    titleEl.textContent = cfg.chartName;
+    titleEditDiv.style.display = 'none';
+    drawAllCharts();
+  });
+  cancelBtn.addEventListener('click', () => {
+    titleEditDiv.style.display = 'none';
   });
 
-  // When user picks a new X field, we create a "pill" and add it to xCols
+  const typeSelect = document.getElementById(cfg.typeId);
+  typeSelect.addEventListener('change', () => drawAllCharts());
+
+  // X selection
+  const xSelector = document.getElementById(cfg.xSelectorId);
+  const xFieldsDiv = document.getElementById(cfg.xFieldsId);
   xSelector.addEventListener('change', () => {
     const val = xSelector.value;
     if (val) {
       cfg.xCols.push(val);
-      addPill(cfg.xFieldsId, val, cfg.xCols);
+      xFieldsDiv.appendChild(createPill(val, cfg.xCols, xFieldsDiv));
       xSelector.value = '';
       drawAllCharts();
     }
   });
 
-  // Same for Y
+  // Y selection
+  const ySelector = document.getElementById(cfg.ySelectorId);
+  const yFieldsDiv = document.getElementById(cfg.yFieldsId);
   ySelector.addEventListener('change', () => {
     const val = ySelector.value;
     if (val) {
       cfg.yCols.push(val);
-      addPill(cfg.yFieldsId, val, cfg.yCols);
+      yFieldsDiv.appendChild(createPill(val, cfg.yCols, yFieldsDiv));
       ySelector.value = '';
       drawAllCharts();
     }
   });
 
-  // Also handle chart type changes
-  const typeSelect = document.getElementById(cfg.typeSelectId);
-  typeSelect.addEventListener('change', () => {
+  // X keyword
+  document.getElementById(cfg.xKeywordId).addEventListener('input', () => {
+    drawAllCharts();
+  });
+  // Y keyword
+  document.getElementById(cfg.yKeywordId).addEventListener('input', () => {
     drawAllCharts();
   });
 });
 
-// Add a "pill" to the given container. On remove, remove from array.
-function addPill(containerId, val, arr) {
-  const container = document.getElementById(containerId);
-  const pill = document.createElement('span');
-  pill.className = 'badge bg-primary me-2 mb-2 d-flex align-items-center';
-  pill.style.cursor = 'pointer';
-
-  const text = document.createElement('span');
-  text.textContent = val;
-  pill.appendChild(text);
-
-  const removeIcon = document.createElement('span');
-  removeIcon.textContent = ' ✕';
-  removeIcon.style.marginLeft = '5px';
-  removeIcon.addEventListener('click', () => {
-    // Remove from array
-    const idx = arr.indexOf(val);
-    if (idx >= 0) arr.splice(idx, 1);
-    container.removeChild(pill);
-    drawAllCharts();
-  });
-  pill.appendChild(removeIcon);
-
-  container.appendChild(pill);
-}
-
-// The main draw function for each chart
-function drawAllCharts() {
-  const filters = getCurrentFilters();
-  const keyword = keywordInput.value.toLowerCase();
-
-  let filtered = parsedRows;
-  // Keyword filter on any X-col
-  if (keyword) {
-    // We'll unify all X columns from all charts (but that might be weird).
-    // Instead, let's not unify. The user said "I want all filters to refine the data"
-    // So we do a single approach: we check if ANY row's original col includes it? 
-    // This can get complex. We'll just do it in a single approach:
-    filtered = filtered.filter(row => {
-      // If there's ANY X col across ANY chart? We'll do a simpler approach: 
-      // If any original field includes the keyword => keep. 
-      // Or if you want specifically x-axis from some chart? 
-      // We'll do a global approach for simplicity:
-      return Object.keys(row.original).some(c => {
-        const val = row.original[c];
-        return val && val.toString().toLowerCase().includes(keyword);
-      });
-    });
-  }
-
-  // Apply column-value filters
-  filters.forEach(f => {
-    filtered = filtered.filter(row => {
-      const colVal = row.original[f.column];
-      return colVal != null && colVal.toString() === f.value;
-    });
-  });
-
-  // For each chart, we gather the config and produce traces
+// Populate each chart's X and Y selectors
+function populateSelectors() {
   chartConfigs.forEach(cfg => {
-    drawSingleChart(cfg, filtered);
+    const xSel = document.getElementById(cfg.xSelectorId);
+    const ySel = document.getElementById(cfg.ySelectorId);
+    columns.forEach(col => {
+      let optX = document.createElement('option');
+      optX.value = col;
+      optX.textContent = col;
+      xSel.appendChild(optX);
+
+      let optY = document.createElement('option');
+      optY.value = col;
+      optY.textContent = col;
+      ySel.appendChild(optY);
+    });
+  });
+}
+populateSelectors();
+
+function drawAllCharts() {
+  chartConfigs.forEach(cfg => {
+    drawSingleChart(cfg);
   });
 }
 
-function drawSingleChart(cfg, filteredRows) {
-  const chartTypeSelect = document.getElementById(cfg.typeSelectId);
-  const chartType = chartTypeSelect.value; // bar, line, scatter, pie
-
+function drawSingleChart(cfg) {
+  const chartType = document.getElementById(cfg.typeId).value;
+  const chartDiv = document.getElementById(cfg.chartDivId);
+  const chartName = document.getElementById(cfg.titleId).textContent;
   const isDarkMode = document.body.classList.contains('dark-mode');
   const layout = {
+    title: chartName,
     paper_bgcolor: isDarkMode ? '#333333' : '#ffffff',
     plot_bgcolor: isDarkMode ? '#333333' : '#ffffff',
     font: { color: isDarkMode ? '#ffffff' : '#000000' },
-    margin: { t: 30, r: 10, b: 50, l: 50 },
+    margin: { t: 40, r: 20, b: 60, l: 60 }
   };
 
   const xCols = cfg.xCols;
   const yCols = cfg.yCols;
-
-  const traces = [];
+  const xKw = document.getElementById(cfg.xKeywordId).value.toLowerCase();
+  const yKw = document.getElementById(cfg.yKeywordId).value.toLowerCase();
 
   if (!xCols.length || !yCols.length) {
-    const cDiv = document.getElementById(cfg.chartDivId);
-    cDiv.innerHTML = "<p class='text-muted'>No X/Y fields selected.</p>";
+    chartDiv.innerHTML = "<p class='text-muted'>No X/Y fields selected.</p>";
     return;
   }
 
-  // If pie => we only use the first X col and first Y col
-  // If bar/line/scatter => for each X col, for each Y col => a trace
+  // Filter data
+  let filtered = parsedRows.filter(r => {
+    // X filter
+    let passX = true;
+    if (xKw) {
+      passX = xCols.some(xc => {
+        const val = r.original[xc];
+        return val && val.toString().toLowerCase().includes(xKw);
+      });
+    }
+    // Y filter
+    let passY = true;
+    if (yKw) {
+      passY = yCols.some(yc => {
+        const val = r.original[yc];
+        return val && val.toString().toLowerCase().includes(yKw);
+      });
+    }
+    return passX && passY;
+  });
+
+  const traces = [];
   if (chartType === 'pie') {
     const xCol = xCols[0];
     const yCol = yCols[0];
-
-    // Sum up numeric values by category
-    const categoryMap = {};
-    filteredRows.forEach(row => {
-      const cat = row.original[xCol];
-      const val = row.numeric[yCol];
+    const catMap = {};
+    filtered.forEach(r => {
+      const cat = r.original[xCol];
+      const val = r.processed[yCol];
       if (cat && typeof val === 'number') {
-        categoryMap[cat] = (categoryMap[cat] || 0) + val;
+        catMap[cat] = (catMap[cat] || 0) + val;
       }
     });
-
-    const labels = Object.keys(categoryMap);
-    const values = Object.values(categoryMap);
-
+    const labels = Object.keys(catMap);
+    const values = Object.values(catMap);
     if (labels.length) {
       traces.push({
         labels,
         values,
         type: 'pie',
         hoverinfo: 'label+value+percent',
-        textinfo: 'value',
+        textinfo: 'value'
       });
     }
   } else {
-    yCols.forEach(yCol => {
-      xCols.forEach(xCol => {
+    // bar/line/scatter
+    yCols.forEach(yC => {
+      xCols.forEach(xC => {
         const x_data = [];
         const y_data = [];
         const hover_text = [];
-
-        filteredRows.forEach(row => {
-          const xVal = row.original[xCol];
-          const yVal = row.numeric[yCol];
-          if (xVal != null && typeof yVal === 'number') {
-            x_data.push(xVal);
-            y_data.push(yVal);
-            hover_text.push(`${xCol}: ${xVal}<br>${yCol}: ${yVal}`);
+        filtered.forEach(r => {
+          const xv = r.original[xC];
+          const yv = r.processed[yC];
+          if (xv && typeof yv === 'number') {
+            x_data.push(xv);
+            y_data.push(yv);
+            hover_text.push(`${xC}: ${xv}<br>${yC}: ${yv}`);
           }
         });
-
         if (x_data.length) {
           let trace = {
             x: x_data,
             y: y_data,
             hovertext: hover_text,
             hoverinfo: 'text',
-            name: `${yCol} vs ${xCol}`
+            name: `${yC} vs ${xC}`
           };
-
           switch (chartType) {
             case 'bar':
               trace.type = 'bar';
@@ -384,18 +357,25 @@ function drawSingleChart(cfg, filteredRows) {
   }
 
   if (!traces.length) {
-    const cDiv = document.getElementById(cfg.chartDivId);
-    cDiv.innerHTML = "<p>No valid data for these selections.</p>";
+    chartDiv.innerHTML = "<p>No valid data for these selections.</p>";
     return;
   }
 
-  // Build final layout
-  layout.title = chartType.toUpperCase() + ` Chart`;
-  const cDiv = document.getElementById(cfg.chartDivId);
-  Plotly.newPlot(cDiv, traces, layout, { responsive: true });
+  Plotly.newPlot(chartDiv, traces, layout, { responsive: true });
 }
 
-// On load, let's do a single draw
+// On load, draw
 drawAllCharts();
-console.log("Advanced Visualization init complete.");
+
+// Toggling data preview
+const dataPreviewToggle = document.getElementById('dataPreviewToggle');
+const dataPreviewSection = document.getElementById('dataPreviewSection');
+let previewExpanded = false;
+dataPreviewToggle.addEventListener('click', () => {
+  previewExpanded = !previewExpanded;
+  dataPreviewSection.style.display = previewExpanded ? 'block' : 'none';
+  dataPreviewToggle.textContent = previewExpanded ? '▲' : '▼';
+});
+
+console.log("BI Visualization initialized.");
 
