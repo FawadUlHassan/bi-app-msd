@@ -2,15 +2,14 @@ console.log("Initializing visualization.js...");
 
 const parsedRows = window.parsedRowsData;
 const columns = window.columnsData;
+
 const xSelect = document.getElementById('x_col');
 const ySelect = document.getElementById('y_col');
-const formatSelect = document.getElementById('format_option');
 const keywordInput = document.getElementById('keyword_filter');
-
 const addFilterBtn = document.getElementById('add_filter_btn');
 const filtersContainer = document.getElementById('filters_container');
 
-// Populate dropdowns with columns (same as your provided code)
+// Populate dropdowns with columns
 columns.forEach(col => {
     const xOption = document.createElement('option');
     xOption.value = col;
@@ -58,7 +57,7 @@ function getCurrentFilters() {
     return filters;
 }
 
-// Use your original getFilteredRows logic and integrate column-value filters
+// Filter rows based on keyword and additional filters
 function getFilteredRows() {
     const keyword = keywordInput.value.toLowerCase();
     const x_col = xSelect.value;
@@ -67,7 +66,7 @@ function getFilteredRows() {
     // Start with all rows
     let filtered = parsedRows;
 
-    // Keyword filter (unchanged from your code)
+    // Apply keyword filter
     if (keyword && x_col) {
         filtered = filtered.filter(row => {
             const val = (row.original[x_col] || '').toString().toLowerCase();
@@ -75,7 +74,7 @@ function getFilteredRows() {
         });
     }
 
-    // Apply column-value filters
+    // Apply additional column-value filters
     for (const f of activeFilters) {
         filtered = filtered.filter(row => {
             const colVal = row.original[f.column];
@@ -86,12 +85,11 @@ function getFilteredRows() {
     return filtered;
 }
 
-// Use your original drawChart logic exactly as given in your snippet
+// Draw the chart with filtered rows
 function drawChart() {
     const filteredRows = getFilteredRows();
     const x_col = xSelect.value;
     const y_col = ySelect.value;
-    const chosenFormat = formatSelect.value;
 
     const x_data = [];
     const y_data = [];
@@ -100,20 +98,21 @@ function drawChart() {
     for (const row of filteredRows) {
         const orig = row.original;
         const num = row.numeric;
+
+        // Use x_col from original, y_col from numeric
         let val = num[y_col];
         if (typeof val === 'number') {
             x_data.push(orig[x_col]);
-            let formattedValue;
-            if (chosenFormat === 'PKR') {
-                formattedValue = `PKR ${val.toLocaleString()}`;
-            } else if (chosenFormat === '%') {
-                formattedValue = `${val}%`;
-            } else {
-                formattedValue = val.toLocaleString();
-            }
-            hover_text.push(`${x_col}: ${orig[x_col]}<br>${y_col}: ${formattedValue}`);
             y_data.push(val);
+
+            // Build hover text
+            hover_text.push(`${x_col}: ${orig[x_col]}<br>${y_col}: ${val}`);
         }
+    }
+
+    if (x_data.length === 0 || y_data.length === 0) {
+        document.getElementById('chart').innerHTML = "<p>No valid data available for the selected columns after filtering.</p>";
+        return;
     }
 
     const trace = {
@@ -124,25 +123,16 @@ function drawChart() {
         hovertext: hover_text
     };
 
-    let tickPrefix = '';
-    let tickSuffix = '';
-    if (chosenFormat === 'PKR') tickPrefix = 'PKR ';
-    if (chosenFormat === '%') tickSuffix = '%';
-
     const layout = {
         title: `Visualization: ${x_col} vs ${y_col}`,
         xaxis: { title: x_col },
-        yaxis: { 
-            title: y_col,
-            tickprefix: tickPrefix,
-            ticksuffix: tickSuffix
-        }
+        yaxis: { title: y_col }
     };
 
     Plotly.newPlot('chart', [trace], layout);
 }
 
-// Add filter row logic (same as in the previously working filters code)
+// Add filter row logic
 function addFilterRow() {
     const filterRow = document.createElement('div');
     filterRow.className = 'd-flex mb-2 align-items-start flex-wrap';
@@ -200,10 +190,9 @@ function addFilterRow() {
     });
 }
 
-// Event listeners (same as your snippet)
+// Event listeners
 xSelect.addEventListener('change', drawChart);
 ySelect.addEventListener('change', drawChart);
-formatSelect.addEventListener('change', drawChart);
 keywordInput.addEventListener('input', drawChart);
 addFilterBtn.addEventListener('click', () => {
     addFilterRow();

@@ -1,5 +1,8 @@
 import os
 import csv
+import json
+import re
+from datetime import datetime
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_mysqldb import MySQL
@@ -7,11 +10,6 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length
 from werkzeug.security import generate_password_hash, check_password_hash
-import plotly.graph_objs as go
-import plotly.io as pio
-import json
-import re
-from datetime import datetime
 
 # Initialize the app
 app = Flask(__name__)
@@ -20,9 +18,18 @@ app.config.from_object('config.Config')
 # Initialize MySQL
 mysql = MySQL(app)
 
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'csv'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 def convert_to_numeric(value):
     val_str = str(value).strip()
-
     # Remove leading alphabets (e.g. currency) and spaces
     val_str = re.sub(r'^[A-Za-z\s]+', '', val_str)
     # Remove commas
@@ -35,26 +42,12 @@ def convert_to_numeric(value):
 
     try:
         num = float(val_str)
-        # If you want to convert percentages to actual percents (e.g. "50%" -> 50.0):
-        # it's already done by just removing '%' above.
-        # If you wanted "50%" to become 0.5, you would do:
+        # If you wanted to interpret percentages as fraction, you could do:
         # if percentage:
-        #     num = num / 100.0
+        #     num /= 100.0
         return num
     except ValueError:
         return None
-
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'csv'}
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Create uploads directory if it doesn't exist
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Registration Form
 class RegistrationForm(FlaskForm):
@@ -130,7 +123,6 @@ def get_username():
         return user[0] if user else None
     return None
 
-
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     if 'user_id' not in session:
@@ -143,7 +135,6 @@ def upload():
             return redirect(url_for('upload'))
 
         file = request.files['file']
-
         if file.filename == '':
             flash('No selected file', 'danger')
             return redirect(url_for('upload'))
@@ -156,13 +147,13 @@ def upload():
             with open(filepath, newline='') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
                 rows = list(reader)
-
+                
                 if not rows:
                     flash('Uploaded CSV is empty', 'info')
                     return redirect(url_for('upload'))
 
                 headers = rows[0]
-                data_rows = rows[1:]  # Actual data rows
+                data_rows = rows[1:]
 
                 cur = mysql.connection.cursor()
                 cur.execute("TRUNCATE TABLE uploaded_data_json")
@@ -194,7 +185,6 @@ def upload():
 
     return render_template('upload.html')
 
-
 @app.route('/visualization')
 def visualization():
     if 'user_id' not in session:
@@ -213,7 +203,7 @@ def visualization():
     parsed_rows = []
     for r in rows:
         try:
-            parsed = json.loads(r[0])  # parsed['original'], parsed['numeric']
+            parsed = json.loads(r[0])  # => { original: {}, numeric: {} }
             parsed_rows.append(parsed)
         except Exception as e:
             print("Error parsing JSON:", e)
@@ -222,28 +212,12 @@ def visualization():
         flash('No valid data to visualize.', 'info')
         return redirect(url_for('upload'))
 
-    # All keys are taken from 'original' since it's guaranteed all rows share same keys
+    # Use the 'original' keys from the first row for columns
     all_keys = list(parsed_rows[0]["original"].keys())
-
     data_json = json.dumps(parsed_rows)
     columns_json = json.dumps(all_keys)
 
     return render_template('visualization.html', data_json=data_json, columns_json=columns_json)
-
-@app.route('/save_preferences', methods=['POST'])
-def save_preferences():
-    if 'user_id' not in session:
-        return "Unauthorized", 401
-
-    prefs = request.get_json()
-    cur = mysql.connection.cursor()
-    cur.execute("""
-        INSERT INTO user_preferences (user_id, preferences) VALUES (%s, %s)
-        ON DUPLICATE KEY UPDATE preferences=%s
-    """, (session['user_id'], json.dumps(prefs), json.dumps(prefs)))
-    mysql.connection.commit()
-    cur.close()
-    return "OK", 200
 
 @app.route('/logout')
 def logout():
@@ -251,6 +225,6 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
-
