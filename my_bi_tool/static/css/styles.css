@@ -1,4 +1,4 @@
-/* my_bi_tool/static/css/styles.css */
+/* styles.css */
 
 /* Brand Colors */
 :root {
@@ -9,7 +9,6 @@
   --heading-color: var(--brand-blue);
 }
 
-/* Dark mode overrides */
 body.dark-mode {
   --bg-color: #1e1e1e;
   --text-color: #ffffff;
@@ -32,7 +31,6 @@ h2, h4 {
   color: #ffffff;
   transition: background-color 0.2s ease;
 }
-
 .btn-primary:hover {
   background-color: #1f3d77;
   border-color: #1f3d77;
@@ -44,13 +42,12 @@ h2, h4 {
   color: #ffffff;
   transition: background-color 0.2s ease;
 }
-
 .btn-orange:hover {
   background-color: #cf6b1c;
   border-color: #cf6b1c;
 }
 
-/* Dark/Light Toggle Button */
+/* Toggle Button */
 #darkLightToggle {
   position: fixed;
   bottom: 20px;
@@ -68,7 +65,6 @@ h2, h4 {
   z-index: 9999;
   transition: background-color 0.2s ease;
 }
-
 #darkLightToggle:hover {
   background-color: #cf6b1c;
 }

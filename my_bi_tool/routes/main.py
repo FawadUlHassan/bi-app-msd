@@ -6,7 +6,7 @@ main_bp = Blueprint('main', __name__, template_folder='../../templates')
 
 @main_bp.route('/')
 def index():
-    # You can redirect '/' straight to '/dashboard' or show a landing page
+    # Optionally redirect root to /dashboard
     return redirect(url_for('main.dashboard'))
 
 @main_bp.route('/dashboard')

@@ -1,5 +1,4 @@
 # my_bi_tool/__init__.py
-
 from flask import Flask
 from config import Config
 from .extensions import mysql

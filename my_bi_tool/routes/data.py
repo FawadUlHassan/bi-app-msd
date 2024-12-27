@@ -13,7 +13,7 @@ data_bp = Blueprint('data', __name__, template_folder='../../templates')
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'csv'}
 
-# Ensure upload directory exists
+# Ensure the upload folder exists
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
@@ -21,7 +21,9 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def detect_type(value):
-    """Dynamically detect type: currency, percentage, numeric, date, or text."""
+    """
+    Dynamically detect type: currency, percentage, numeric, date, or text.
+    """
     if value is None:
         return "text", None
 
@@ -60,7 +62,6 @@ def detect_type(value):
         except ValueError:
             continue
 
-    # Default to text
     return "text", val
 
 @data_bp.route('/upload', methods=['GET', 'POST'])
@@ -84,6 +85,14 @@ def upload():
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             file.save(filepath)
 
+            # Insert into uploads table
+            cur = mysql.connection.cursor()
+            cur.execute("""
+                INSERT INTO uploads (user_id, filename, uploaded_at)
+                VALUES (%s, %s, %s)
+            """, (session['user_id'], filename, datetime.now()))
+            upload_id = cur.lastrowid
+
             with open(filepath, newline='', encoding='utf-8') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
                 rows = list(reader)
@@ -94,12 +103,6 @@ def upload():
                 headers = rows[0]
                 data_rows = rows[1:]
 
-                cur = mysql.connection.cursor()
-                # CAREFUL: This TRUNCATE will remove existing data.
-                # For multi-file support, you should store each upload in a separate table or with an upload_id.
-                cur.execute("TRUNCATE TABLE uploaded_data_json")
-
-                # We'll gather stats for numeric columns for a simple data science summary
                 numericTrackers = {h: [] for h in headers}
 
                 for rowVals in data_rows:
@@ -112,7 +115,7 @@ def upload():
                             dtype, val = detect_type(v)
                             processed_data[k] = val
                             types_data[k] = dtype
-                            # If numeric, store in numericTrackers
+
                             if dtype in ['numeric', 'currency', 'percentage']:
                                 numericTrackers[k].append(val)
 
@@ -123,9 +126,12 @@ def upload():
                         }
 
                         json_data = json.dumps(final_dict, ensure_ascii=False)
-                        cur.execute("INSERT INTO uploaded_data_json (row_data) VALUES (%s)", (json_data,))
+                        cur.execute("""
+                            INSERT INTO uploaded_data_json (upload_id, row_data)
+                            VALUES (%s, %s)
+                        """, (upload_id, json_data))
 
-                # Quick data science summary for numeric columns
+                # Summaries
                 ds_summary = {}
                 for k, arr in numericTrackers.items():
                     valid = [x for x in arr if x is not None]
@@ -138,34 +144,54 @@ def upload():
                             "distinct": len(set(valid))
                         }
 
-                # We store ds_summary as a single row with row_data='__SUMMARY__'
                 summary_json = json.dumps({"ds_summary": ds_summary}, ensure_ascii=False)
-                cur.execute("INSERT INTO uploaded_data_json (row_data) VALUES (%s)", (summary_json,))
+                cur.execute("""
+                    INSERT INTO uploaded_data_json (upload_id, row_data)
+                    VALUES (%s, %s)
+                """, (upload_id, summary_json))
 
                 mysql.connection.commit()
                 cur.close()
 
             flash('File uploaded and data saved successfully!', 'success')
-            return redirect(url_for('data.visualization'))
+            return redirect(url_for('data.my_uploads'))
         else:
             flash('Invalid file type. Please upload a CSV file.', 'danger')
             return redirect(url_for('data.upload'))
 
     return render_template('upload.html')
 
-@data_bp.route('/visualization')
-def visualization():
+@data_bp.route('/my_uploads')
+def my_uploads():
+    if 'user_id' not in session:
+        flash('Please log in first', 'danger')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT id, filename, uploaded_at
+        FROM uploads
+        WHERE user_id = %s
+        ORDER BY uploaded_at DESC
+    """, (session['user_id'],))
+    files = cur.fetchall()
+    cur.close()
+
+    return render_template('my_uploads.html', files=files)
+
+@data_bp.route('/visualization/<int:upload_id>')
+def visualization(upload_id):
     if 'user_id' not in session:
         flash('Please log in to access visualization', 'danger')
         return redirect(url_for('auth.login'))
 
     cur = mysql.connection.cursor()
-    cur.execute("SELECT row_data FROM uploaded_data_json")
+    cur.execute("SELECT row_data FROM uploaded_data_json WHERE upload_id = %s", (upload_id,))
     rows = cur.fetchall()
     cur.close()
 
     if not rows:
-        flash('No data available. Please upload a CSV file first.', 'info')
+        flash('No data available for this file. Please upload a CSV first.', 'info')
         return redirect(url_for('data.upload'))
 
     parsed_rows = []
@@ -181,7 +207,7 @@ def visualization():
             print("Error parsing JSON:", e)
 
     if not parsed_rows:
-        flash('No valid data to visualize.', 'info')
+        flash('No valid data to visualize for this upload.', 'info')
         return redirect(url_for('data.upload'))
 
     all_keys = list(parsed_rows[0]["original"].keys())
@@ -189,8 +215,10 @@ def visualization():
     columns_json = json.dumps(all_keys, ensure_ascii=False)
     ds_summary_json = json.dumps(ds_summary, ensure_ascii=False)
 
-    return render_template('visualization.html',
-                           data_json=data_json,
-                           columns_json=columns_json,
-                           ds_summary_json=ds_summary_json)
+    return render_template(
+        'visualization.html',
+        data_json=data_json,
+        columns_json=columns_json,
+        ds_summary_json=ds_summary_json
+    )
 

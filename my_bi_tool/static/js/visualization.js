@@ -1,5 +1,5 @@
-// my_bi_tool/static/js/visualization.js
-console.log("Metabase-like Visualization with DS logic...");
+// visualization.js
+console.log("Visualization script loaded.");
 
 const parsedRows = window.parsedRowsData || [];
 const columns = window.columnsData || [];
@@ -53,7 +53,7 @@ function createDataPreview() {
 }
 createDataPreview();
 
-// 3. Chart configs for the 4 chart placeholders
+// 3. Chart configs
 const chartConfigs = [
   {
     chartNum: 1,
@@ -158,7 +158,7 @@ function createPill(value, arrayRef, containerEl) {
   return pill;
 }
 
-// Setup each chart
+// Setup each chart config
 chartConfigs.forEach(cfg => {
   const titleEl = document.getElementById(cfg.titleId);
   const editIcon = document.getElementById(cfg.editIconId);
@@ -220,7 +220,7 @@ chartConfigs.forEach(cfg => {
   });
 });
 
-// Populate each chart's X and Y selectors with all columns
+// Populate each chart's X and Y selectors
 function populateSelectors() {
   chartConfigs.forEach(cfg => {
     const xSel = document.getElementById(cfg.xSelectorId);
@@ -271,7 +271,7 @@ function drawSingleChart(cfg) {
 
   // Filter data
   let filtered = parsedRows.filter(r => {
-    // Check X columns for keyword
+    // X filter
     let passX = true;
     if (xKw) {
       passX = xCols.some(xc => {
@@ -279,7 +279,7 @@ function drawSingleChart(cfg) {
         return val && val.toString().toLowerCase().includes(xKw);
       });
     }
-    // Check Y columns for keyword
+    // Y filter
     let passY = true;
     if (yKw) {
       passY = yCols.some(yc => {
@@ -292,7 +292,7 @@ function drawSingleChart(cfg) {
 
   const traces = [];
   if (chartType === 'pie') {
-    // For pie, we generally consider one X col as "label" and one Y col as "value"
+    // For pie, single X as "labels" and single Y as "values"
     const xCol = xCols[0];
     const yCol = yCols[0];
     const catMap = {};
@@ -315,7 +315,7 @@ function drawSingleChart(cfg) {
       });
     }
   } else {
-    // For bar/line/scatter
+    // bar, line, scatter
     yCols.forEach(yC => {
       xCols.forEach(xC => {
         const x_data = [];
@@ -365,7 +365,7 @@ function drawSingleChart(cfg) {
   Plotly.newPlot(chartDiv, traces, layout, { responsive: true });
 }
 
-// On load, draw initial charts
+// Initial draw
 drawAllCharts();
 
 // Toggling data preview

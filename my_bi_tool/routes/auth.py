@@ -1,5 +1,4 @@
 # my_bi_tool/routes/auth.py
-import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from my_bi_tool.extensions import mysql
@@ -13,7 +12,7 @@ def register():
     if form.validate_on_submit():
         username = form.username.data.strip()
         email = form.email.data.strip()
-        password = generate_password_hash(form.password.data)
+        hashed_pw = generate_password_hash(form.password.data)
 
         cur = mysql.connection.cursor()
         cur.execute("SELECT id FROM users WHERE username = %s OR email = %s", (username, email))
@@ -21,10 +20,10 @@ def register():
         if existing_user:
             flash('Username or email already exists!', 'danger')
         else:
-            cur.execute(
-                "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
-                (username, email, password)
-            )
+            cur.execute("""
+                INSERT INTO users (username, email, password)
+                VALUES (%s, %s, %s)
+            """, (username, email, hashed_pw))
             mysql.connection.commit()
             cur.close()
             flash('Registration successful! You can now log in.', 'success')
