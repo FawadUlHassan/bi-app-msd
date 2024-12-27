@@ -1,0 +1,94 @@
+/* my_bi_tool/static/css/styles.css */
+
+/* Brand Colors */
+:root {
+  --brand-blue: #284e94;
+  --brand-orange: #e87c1e;
+  --bg-color: #ffffff;
+  --text-color: #000000;
+  --heading-color: var(--brand-blue);
+}
+
+/* Dark mode overrides */
+body.dark-mode {
+  --bg-color: #1e1e1e;
+  --text-color: #ffffff;
+  --heading-color: #cccccc;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h2, h4 {
+  color: var(--heading-color);
+}
+
+.btn-primary {
+  background-color: var(--brand-blue);
+  border-color: var(--brand-blue);
+  color: #ffffff;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: #1f3d77;
+  border-color: #1f3d77;
+}
+
+.btn-orange {
+  background-color: var(--brand-orange);
+  border-color: var(--brand-orange);
+  color: #ffffff;
+  transition: background-color 0.2s ease;
+}
+
+.btn-orange:hover {
+  background-color: #cf6b1c;
+  border-color: #cf6b1c;
+}
+
+/* Dark/Light Toggle Button */
+#darkLightToggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 45px;
+  height: 45px;
+  background-color: var(--brand-orange);
+  border: none;
+  border-radius: 50%;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 45px;
+  text-align: center;
+  z-index: 9999;
+  transition: background-color 0.2s ease;
+}
+
+#darkLightToggle:hover {
+  background-color: #cf6b1c;
+}
+
+.card {
+  background-color: var(--bg-color);
+  border: 1px solid #ccc;
+}
+
+#chart1, #chart2, #chart3, #chart4 {
+  width: 100%;
+  min-height: 400px;
+}
+
+.container-fluid {
+  max-width: 100%;
+}
+
+.badge {
+  padding: 0.4em 0.7em;
+  font-size: 0.85rem;
+}
+
