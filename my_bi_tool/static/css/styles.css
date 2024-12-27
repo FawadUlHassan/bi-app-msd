@@ -1,4 +1,4 @@
-/* styles.css */
+/* my_bi_tool/static/css/styles.css */
 
 /* Brand Colors */
 :root {
@@ -7,6 +7,8 @@
   --bg-color: #ffffff;
   --text-color: #000000;
   --heading-color: var(--brand-blue);
+  --transition-speed: 0.3s;
+  --border-radius: 4px;
 }
 
 body.dark-mode {
@@ -18,18 +20,26 @@ body.dark-mode {
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  line-height: 1.5;
 }
 
-h2, h4 {
+/* Headings, navbar brand */
+h2, h4, .navbar-brand {
   color: var(--heading-color);
+}
+
+/* Buttons */
+.btn {
+  border-radius: var(--border-radius);
+  transition: background-color 0.2s ease;
 }
 
 .btn-primary {
   background-color: var(--brand-blue);
   border-color: var(--brand-blue);
-  color: #ffffff;
-  transition: background-color 0.2s ease;
+  color: #fff;
 }
 .btn-primary:hover {
   background-color: #1f3d77;
@@ -39,15 +49,14 @@ h2, h4 {
 .btn-orange {
   background-color: var(--brand-orange);
   border-color: var(--brand-orange);
-  color: #ffffff;
-  transition: background-color 0.2s ease;
+  color: #fff;
 }
 .btn-orange:hover {
   background-color: #cf6b1c;
   border-color: #cf6b1c;
 }
 
-/* Toggle Button */
+/* Dark/Light Toggle */
 #darkLightToggle {
   position: fixed;
   bottom: 20px;
@@ -69,22 +78,40 @@ h2, h4 {
   background-color: #cf6b1c;
 }
 
+/* Cards */
 .card {
   background-color: var(--bg-color);
   border: 1px solid #ccc;
+  border-radius: var(--border-radius);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+/* Chart containers */
 #chart1, #chart2, #chart3, #chart4 {
   width: 100%;
   min-height: 400px;
 }
 
-.container-fluid {
-  max-width: 100%;
+/* Table styling for data preview, pivot */
+.table thead {
+  background-color: #f3f3f3;
+}
+.table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
 }
 
+/* Make sure the table-responsive in dark mode still has correct background */
+.table-responsive {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+/* .badge for X/Y pills */
 .badge {
-  padding: 0.4em 0.7em;
+  display: inline-flex;
+  align-items: center;
   font-size: 0.85rem;
+  padding: 0.4em 0.7em;
+  border-radius: var(--border-radius);
 }
 

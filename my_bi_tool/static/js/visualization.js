@@ -1,18 +1,27 @@
-// visualization.js
-console.log("Visualization script loaded.");
+// my_bi_tool/static/js/visualization.js
 
+console.log("Enhanced Visualization with pagination + chart saving...");
+
+// Global data
 const parsedRows = window.parsedRowsData || [];
 const columns = window.columnsData || [];
 const dsSummaryData = window.dsSummaryData || {};
+const currentUploadId = window.currentUploadId || 0;
 
-// 1. Show DS summary in sidebar
+// Pagination state
+let currentPage = 1;
+const PAGE_SIZE = 10; // Show 10 rows per page
+
+// 1. Show DS summary
 function showDSSummary() {
   const dsSummaryEl = document.getElementById('dsSummary');
   if (!dsSummaryEl) return;
+
   if (!Object.keys(dsSummaryData).length) {
     dsSummaryEl.innerHTML = "<p class='text-muted'>No numeric column stats available.</p>";
     return;
   }
+
   let html = '<ul class="list-group">';
   for (let col in dsSummaryData) {
     const st = dsSummaryData[col];
@@ -30,30 +39,61 @@ function showDSSummary() {
 }
 showDSSummary();
 
-// 2. Data Preview
-function createDataPreview() {
+// 2. Data Preview (paginated)
+function createDataPreview(page) {
   const dataPreviewContent = document.getElementById('dataPreviewContent');
   if (!dataPreviewContent) return;
-  const maxRows = 10;
+
+  const totalRows = parsedRows.length;
+  const totalPages = Math.ceil(totalRows / PAGE_SIZE);
+
+  if (page < 1) page = 1;
+  if (page > totalPages) page = totalPages || 1;
+
+  currentPage = page;
+
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const endIndex = startIndex + PAGE_SIZE;
+  const displayRows = parsedRows.slice(startIndex, endIndex);
+
   let html = '<table class="table table-bordered table-sm"><thead><tr>';
   columns.forEach(col => {
     html += `<th>${col}</th>`;
   });
   html += '</tr></thead><tbody>';
-  for (let i = 0; i < Math.min(parsedRows.length, maxRows); i++) {
-    const row = parsedRows[i].original;
+
+  displayRows.forEach(pr => {
+    const row = pr.original;
     html += '<tr>';
     columns.forEach(col => {
-      html += `<td>${row[col] || ''}</td>`;
+      html += `<td>${row[col] !== undefined ? row[col] : ''}</td>`;
     });
     html += '</tr>';
-  }
+  });
+
   html += '</tbody></table>';
   dataPreviewContent.innerHTML = html;
-}
-createDataPreview();
 
-// 3. Chart configs
+  const pageNumberEl = document.getElementById('pageNumber');
+  if (pageNumberEl) {
+    pageNumberEl.value = `${currentPage} / ${totalPages || 1}`;
+  }
+}
+
+const prevBtn = document.getElementById('prevPage');
+const nextBtn = document.getElementById('nextPage');
+if (prevBtn && nextBtn) {
+  prevBtn.addEventListener('click', () => {
+    createDataPreview(currentPage - 1);
+  });
+  nextBtn.addEventListener('click', () => {
+    createDataPreview(currentPage + 1);
+  });
+}
+// Initialize preview page
+createDataPreview(1);
+
+// 3. Charts
 const chartConfigs = [
   {
     chartNum: 1,
@@ -134,10 +174,9 @@ const chartConfigs = [
     xCols: [],
     yCols: [],
     chartName: 'Chart 4'
-  },
+  }
 ];
 
-// Helper to create "pill"
 function createPill(value, arrayRef, containerEl) {
   const pill = document.createElement('span');
   pill.className = 'badge bg-primary me-2 mb-2 d-flex align-items-center';
@@ -158,7 +197,7 @@ function createPill(value, arrayRef, containerEl) {
   return pill;
 }
 
-// Setup each chart config
+// Setup chart config interactions
 chartConfigs.forEach(cfg => {
   const titleEl = document.getElementById(cfg.titleId);
   const editIcon = document.getElementById(cfg.editIconId);
@@ -181,10 +220,11 @@ chartConfigs.forEach(cfg => {
     titleEditDiv.style.display = 'none';
   });
 
+  // chart type
   const typeSelect = document.getElementById(cfg.typeId);
   typeSelect.addEventListener('change', () => drawAllCharts());
 
-  // X selection
+  // X fields
   const xSelector = document.getElementById(cfg.xSelectorId);
   const xFieldsDiv = document.getElementById(cfg.xFieldsId);
   xSelector.addEventListener('change', () => {
@@ -197,7 +237,7 @@ chartConfigs.forEach(cfg => {
     }
   });
 
-  // Y selection
+  // Y fields
   const ySelector = document.getElementById(cfg.ySelectorId);
   const yFieldsDiv = document.getElementById(cfg.yFieldsId);
   ySelector.addEventListener('change', () => {
@@ -210,17 +250,12 @@ chartConfigs.forEach(cfg => {
     }
   });
 
-  // X keyword
-  document.getElementById(cfg.xKeywordId).addEventListener('input', () => {
-    drawAllCharts();
-  });
-  // Y keyword
-  document.getElementById(cfg.yKeywordId).addEventListener('input', () => {
-    drawAllCharts();
-  });
+  // keywords
+  document.getElementById(cfg.xKeywordId).addEventListener('input', () => drawAllCharts());
+  document.getElementById(cfg.yKeywordId).addEventListener('input', () => drawAllCharts());
 });
 
-// Populate each chart's X and Y selectors
+// Populate selectors
 function populateSelectors() {
   chartConfigs.forEach(cfg => {
     const xSel = document.getElementById(cfg.xSelectorId);
@@ -240,6 +275,7 @@ function populateSelectors() {
 }
 populateSelectors();
 
+// Draw all charts
 function drawAllCharts() {
   chartConfigs.forEach(cfg => {
     drawSingleChart(cfg);
@@ -251,6 +287,7 @@ function drawSingleChart(cfg) {
   const chartDiv = document.getElementById(cfg.chartDivId);
   const chartName = document.getElementById(cfg.titleId).textContent;
   const isDarkMode = document.body.classList.contains('dark-mode');
+
   const layout = {
     title: chartName,
     paper_bgcolor: isDarkMode ? '#333333' : '#ffffff',
@@ -261,17 +298,16 @@ function drawSingleChart(cfg) {
 
   const xCols = cfg.xCols;
   const yCols = cfg.yCols;
-  const xKw = document.getElementById(cfg.xKeywordId).value.toLowerCase();
-  const yKw = document.getElementById(cfg.yKeywordId).value.toLowerCase();
+  const xKw = document.getElementById(cfg.xKeywordId).value.trim().toLowerCase();
+  const yKw = document.getElementById(cfg.yKeywordId).value.trim().toLowerCase();
 
   if (!xCols.length || !yCols.length) {
     chartDiv.innerHTML = "<p class='text-muted'>No X/Y fields selected.</p>";
     return;
   }
 
-  // Filter data
-  let filtered = parsedRows.filter(r => {
-    // X filter
+  // Filter
+  const filtered = parsedRows.filter(r => {
     let passX = true;
     if (xKw) {
       passX = xCols.some(xc => {
@@ -279,7 +315,6 @@ function drawSingleChart(cfg) {
         return val && val.toString().toLowerCase().includes(xKw);
       });
     }
-    // Y filter
     let passY = true;
     if (yKw) {
       passY = yCols.some(yc => {
@@ -292,15 +327,15 @@ function drawSingleChart(cfg) {
 
   const traces = [];
   if (chartType === 'pie') {
-    // For pie, single X as "labels" and single Y as "values"
+    // single X -> labels, single Y -> values
     const xCol = xCols[0];
     const yCol = yCols[0];
     const catMap = {};
     filtered.forEach(r => {
-      const cat = r.original[xCol];
+      const lab = r.original[xCol];
       const val = r.processed[yCol];
-      if (cat && typeof val === 'number') {
-        catMap[cat] = (catMap[cat] || 0) + val;
+      if (lab && typeof val === 'number') {
+        catMap[lab] = (catMap[lab] || 0) + val;
       }
     });
     const labels = Object.keys(catMap);
@@ -315,28 +350,28 @@ function drawSingleChart(cfg) {
       });
     }
   } else {
-    // bar, line, scatter
-    yCols.forEach(yC => {
-      xCols.forEach(xC => {
-        const x_data = [];
-        const y_data = [];
-        const hover_text = [];
+    // bar/line/scatter
+    yCols.forEach(yc => {
+      xCols.forEach(xc => {
+        const xData = [];
+        const yData = [];
+        const hoverText = [];
         filtered.forEach(r => {
-          const xv = r.original[xC];
-          const yv = r.processed[yC];
+          const xv = r.original[xc];
+          const yv = r.processed[yc];
           if (xv && typeof yv === 'number') {
-            x_data.push(xv);
-            y_data.push(yv);
-            hover_text.push(`${xC}: ${xv}<br>${yC}: ${yv}`);
+            xData.push(xv);
+            yData.push(yv);
+            hoverText.push(`${xc}: ${xv}<br>${yc}: ${yv}`);
           }
         });
-        if (x_data.length) {
+        if (xData.length) {
           let trace = {
-            x: x_data,
-            y: y_data,
-            hovertext: hover_text,
+            x: xData,
+            y: yData,
+            hovertext: hoverText,
             hoverinfo: 'text',
-            name: `${yC} vs ${xC}`
+            name: `${yc} vs ${xc}`
           };
           switch (chartType) {
             case 'bar':
@@ -372,11 +407,51 @@ drawAllCharts();
 const dataPreviewToggle = document.getElementById('dataPreviewToggle');
 const dataPreviewSection = document.getElementById('dataPreviewSection');
 let previewExpanded = false;
-dataPreviewToggle.addEventListener('click', () => {
-  previewExpanded = !previewExpanded;
-  dataPreviewSection.style.display = previewExpanded ? 'block' : 'none';
-  dataPreviewToggle.textContent = previewExpanded ? '▲' : '▼';
-});
+if (dataPreviewToggle && dataPreviewSection) {
+  dataPreviewToggle.addEventListener('click', () => {
+    previewExpanded = !previewExpanded;
+    dataPreviewSection.style.display = previewExpanded ? 'block' : 'none';
+    dataPreviewToggle.textContent = previewExpanded ? '▲' : '▼';
+  });
+}
 
-console.log("BI Visualization initialized.");
+// ------------------- SAVE CHART LOGIC -------------------
+const saveChartBtn = document.getElementById('saveChartBtn');
+if (saveChartBtn) {
+  saveChartBtn.addEventListener('click', () => {
+    // We'll just save the first chart's config as an example,
+    // or gather all 4 if you want to store multiple. 
+    // For demonstration, let's just store "Chart 1" config:
+
+    const c1 = chartConfigs[0]; // or whichever chart we want to save
+    const chartData = {
+      chartTitle: c1.chartName,
+      chartType: document.getElementById(c1.typeId).value,
+      xCols: c1.xCols,
+      yCols: c1.yCols,
+      xKeyword: document.getElementById(c1.xKeywordId).value.trim().toLowerCase(),
+      yKeyword: document.getElementById(c1.yKeywordId).value.trim().toLowerCase()
+    };
+
+    fetch(`/data/save_chart/${currentUploadId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(chartData)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert(`Chart saved! ID: ${data.chart_id}`);
+      } else {
+        alert(`Error saving chart: ${data.error || 'Unknown error'}`);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Failed to save chart. Check console for details.');
+    });
+  });
+}
+
+console.log("Visualization with chart saving initialized.");
 

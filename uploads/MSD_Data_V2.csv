@@ -1,0 +1,60 @@
+,s.no,projects,description,previous_status,status,otc,ntl_cost,profit,margin,salesperson/lead_generation,msd_team
+0,1,MerfISB,Enterprise Network Solution,Approval in Process,Approval in Process,73090.0,50200.0,22890.0,0.456,Haroon,Syed Sibtul Hassan
+1,2,CDA Facilitation Centre,Managed Surveillance Solution,Approval in Process,Approval in Process,70810.0,45650.0,25160.0,0.5512,Atisam,Syed Sibtul Hassan
+2,3,Hanifrajput,Enterprise Network Solution,Approval in Process,Halted (Budget issue - Project Cancelled),291720.0,205200.0,86520.0,0.4216,Mubashir Hanif,Ahmed Rafiq
+3,4,Drhumayung8 & Drhumayunf6,Enterprise Network Solution,Approval in Process,Work in progress,862188.0,635880.0,226308.0,0.3559,Asghar Niazi,Syed Sibtul Hassan
+4,5,Google Event,Enterprise Rental Solution,Approval in Process,Halted (Budget issue - Project Cancelled),385000.0,98806.0,286194.0,2.8965,Waqas Malik,Syed Sibtul Hassan
+5,6,HITECH Medical College,Enterprise Network Solution,,Halted (Budget issue - Project Cancelled),3571511.0,1833900.0,558775.0,0.9475,Moeez Ahmed,Syed Umair Ali
+6,7,aandscorp,Enterprise Network Solution,,Completed,275125.0,194400.0,80725.0,0.4153,Roa Usama,Habib Ur Rehman
+7,8,HashTag Pak-China Event,Enterprise Rental Solution,,Halted (Budget issue - Project Cancelled),250000.0,92854.0,157146.0,1.6924,Zain Humayun,Syed Sibtul Hassan
+8,9,GMS,Enterprise Network Solution,,Approval in Process,657450.0,450200.0,207250.0,0.4604,Mubashir Hanif,Syed Sibtul Hassan
+9,10,Abbasyn University CCTV,Enterprise Surveillance Solution,,BOQ in Progress,,,,0.0,Irfan Khan,Syed Sibtul Hassan
+10,11,E-Conception,Enterprise Network Solution,,BOQ in Progress,,,,0.0,Mubashir Hanif,Syed Sibtul Hassan
+11,12,Shah Allah Ditta St 1 CCTV,Enterprise Surveillance Solution,,BOQ in Progress,,,,0.0,-,Syed Sibtul Hassan
+12,13,POF Hospital,Enterprise Network Solution,Approval in Process,Approval in Process,26976902.0,18998344.0,7978558.0,0.42,Moueez Ahmed,Hammad Rafiq
+13,14,Bahria Spring north Phase 7,CCTV Surveillance Solution,Approval in Process,Halted (Budget issue - Project Cancelled),4044230.0,2847826.0,1196404.0,0.4201,Moueez,Muhammad Aqdas Basharat
+14,15,Hayatabad Medical Complex Peshawar,Enterprise Network Solution,Approval in Process,Halted (Project Cancelled),5598450.0,4147000.0,1451450.0,0.35,Omar Tawab,Muhammad Aqdas Basharat
+15,16,WIFI MESH for FPCDLRWP,Enterprise Network Solution,Approval in Process,Approval in Process,476550.0,334250.0,142300.0,0.4257,Niazi,Bilal Jafery
+16,17,USEFP,Enterprise Network Solution,Approval in Process,Approval in Process,100236445.0,79038487.0,21197958.0,0.2682,Haroon,Hammad Rafiq
+17,18,dopasifoundation57,Enterprise Network Solution,Approval in Process,Halted (Budget issue - Project Cancelled),516220.0,363400.0,152820.0,0.4205,Qaisar Mahmood,Aqdas Basharat
+18,19,Centaurus Video Conferencing,Enterprise Video Conferencing Solution,Approval in Process,Approval in Process,978000.0,815000.0,163000.0,0.2,Zain Humayun,Muhammad Aqdas Basharat
+19,20,E-11 Call Center,Enterprise Network Solution,Approval in Process,Halted (Budget issue - Switched to STD Solution),448990.0,308550.0,140440.0,0.4552,Waqas Malik,Muhammad Aqdas Basharat
+20,21,Volta F8,Nwatch and Voice solution,Approval in Process,Approval in Process,327136.0,213305.0,113831.0,0.5337,Haroon Ashraf,Rehan Rauf
+21,22,Bilquis College WIFI Requirement,Enterprise Network Solution,Approval in Process,Halted (Budget issue - Switched to STD Solution),1068055.0,756300.0,311755.0,0.4122,Rao Usama,Bilal Jafery
+22,23,SDPI Pak China (Rental),Enterprise Network Solution,Approval in Process,Completed,700000.0,430000.0,270000.0,0.6279,Haroon Ashraf,Bilal Jafery
+23,24,Tkxel Firewall Requirement,Enterprise Network Solution,Approval in Process,Halted (Budget issue - Switched to other vendor),6196090.0,4707262.0,1488828.0,0.3163,,Bilal Jafery
+24,25,Chenab Club FSD,Enterprise Network Solution,Approval in Process (Pending at Customer End),Approval in Process (Pending at Customer End),4921575.0,3515410.0,1406165.0,0.4,Munawar Jamal,Rehan Rauf
+25,26,NSHS,Enterprise Network Solution,Approval in Process (Pending at Customer End),Approval in Process (Pending at Customer End),19338824.0,13777703.0,5561121.0,0.4036,Niazi,Hammad Rafiq
+26,27,IB,Firewall renewal requirement,Approval in process (Pending at Customer End),Work in progress,312252.0,228520.0,83732.0,0.3664,Shoaib Zafar,Hammad Rafiq
+27,28,Weatherford,Enterprise Network Solution (Cisco),Approval in Process (Pending at Customer End),Approval in Process (Pending at Customer End),37729474.0,29022672.0,8706802.0,0.3,Rao Usama,Bilal Jafery
+28,29,The Women University (Multan),Firewall requirement,Approval in Process (Pending on Sales),Approval in Process (Pending on Sales),6700579.0,4786128.0,1914451.0,0.4,Jahangir Ali,Hammad Rafiq
+29,30,Bestwestern- Switches for Hotel card Entry,Enterprise Network Solution,Approval in Process (Pending on Sales),Halted (Project Cancelled),562800.0,402000.0,160800.0,0.4,Waqas Malik,Bilal Jafery
+30,31,NUST Hostels,Enterprise Network Solution,Approval in Process (Tender Evaluation in process),Halted (Lost the Tender),143143370.0,103012850.0,40130520.0,0.3896,Niazi,Hammad Rafiq
+31,32,Nighat Rizvi Residence,Enterprise Network Solution,BOQ in Progress,BOQ in Progress,,,,,Armughan Riaz,Muhammad Aqdas Basharat
+32,33,BAT GBS Lahore,Enterprise Network Solution,BOQ in Progress,Approval in Process (Pending on Sales),,,,,Armughan,Rehan Rauf
+33,34,FFCL,Enterprise Network Solution,BOQ in Progress,Halt (Customer not responding),28727382.0,,,,Armughan,Muhammad Aqdas Basharat
+34,35,Falcon Complex CCTV,CCTV Surveillance Solution,BOQ in progress,Approval in Process (Pending at Customer End),7762967.0,6396560.0,1366407.0,0.2136,Niazi,Muhammad Aqdas Basharat
+35,36,IDC F8,Enterprise Wireless Solution,BOQ in Progress,Approval in Process,,,,,,
+36,37,Fin Leap,Enterprise Network Solution,BOQ in Progress,Work in Progress,566288.0,409088.0,157200.0,0.3843,Qaisar Mehmood,Muhammad Aqdas Basharat
+37,38,Axian Firewall Renewal,Enterprise Firewall Renewal,BOQ in Progress,Approval in Process,91000.0,65000.0,26000.0,0.4,Armughan Riaz,Muhammad Aqdas Basharat
+38,39,Island06,Enterprise Network Solution,BOQ in Progress,Halted (Budget issue - Switched to STD Solution),,,,,-,Hammad Rafiq
+39,40,Bestwestern Additional requirement,Enterprise Network Solution,Work in Progress,Work in Progress,2052450.0,1368300.0,684150.0,0.5,Waqas Malik,Muhammad Aqdas Basharat
+40,41,Bestwestern Bahria Town,Enterprise Network Solution,Work in Progress,Work in Progress,12000000.0,9818365.0,2181635.0,0.2222,Waqas Malik,Hammad Rafiq
+41,42,President house,Enterprise Network Solution,,Approval in Process,,,,0.0,Haroon Ashraf,Hammad Rafiq
+42,43,Radio PK,Enterprise Network Solution,,Approval in Process,,,,0.0,Haroon Ashraf,Hammad Rafiq
+43,44,Tech Sphere Wifi,Enterprise Network Solution,,Completed,1249428.0,822227.0,427201.0,0.5196,Saad Ahmed,Bilal Jafery
+44,45,PAEC Directorate,Enterprise Network Solution,,Approval in Process,1067620.0,736300.0,331320.0,0.45,Mubashir Hanif,Bilal Jafery
+45,46,AWT Firewall RFP,Enterprise Network Solution,,Approval in Process,13811632.0,10230839.0,3580793.0,0.35,Niazi,Bilal Jafery
+46,47,AWT Wireless Requirement,Enterprise Network Solution,,BOQ in Progress,,,,,,Bilal Jafery
+47,48,Tech Sphere CCTV,CCTV Surveillance Solution,,Approval in Process,221760.0,162300.0,59460.0,0.3664,Saad Ahmed,Bilal Jafery
+48,49,3rdfloor1ctower,Enterprise Network Solution,,Work in Progress,230750.0,177650.0,53100.0,0.2989,Haroon Ashraf,Bilal Jafery
+49,50,OGTI,Enterprise Network Solution,,Approval in Process,1873800.0,1330650.0,543150.0,0.4082,Zain Humayun,Bilal Jafery
+50,51,House B-20 Chakshahzad Farmhouse,Enterprise Network Solution,,BOQ in Progress,,,0.0,0.0,,
+51,52,J-7 Emporium,Enterprise Network Solution,,BoQ in Progress,,,0.0,0.0,,
+52,53,Blue Cascade,Enterprise Network Solution,,Approval in Process,2032741.0,1505734.0,527007.0,0.35,Muzammil Malik,Muhammad Aqdas Basharat
+53,54,Nai Zindagi,Enterprise Network Solution,,Approval in Process,546640.0,372400.0,174240.0,0.4679,Mubashir hanif,Muhammad Aqdas Basharat
+54,55,QCore International,Enterprise Network Solution,,Approval in Process,324380.0,231700.0,92680.0,0.4,Qaisar Mehmood,Muhammad Aqdas Basharat
+55,56,PAF Nursing Hostel,Enterprise Network Solution,,BoQ in Progress,,,,,,
+56,57,dunya tv house,Enterprise Network Solution,,Work in Progress,,,,,,
+57,58,Nighatimran04,Cabling,,Approval in Process,,,,,,
+58,59,Onecentral,Enterprise Network Solution,,Completed,202530.0,147000.0,55530.0,0.3778,Qadess,Habib Ur Rehman
